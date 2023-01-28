@@ -40,6 +40,65 @@ impl Device{
     }
 }
 
+/// Executes the commands in the passed string and returns the resulting Device state
+fn execute_commands(input_commands: &str) -> Device{
+    let mut device = Device::new();
+
+    for command in input_commands.lines(){
+        match sscanf!(command, "addx {i32}") {
+            Ok(V) => device.execute(Command::addx(V)),
+            Error => device.execute(Command::noop)
+        }
+    }
+    
+    return device;
+}
+
+/// Draws the screen represented by the passed commands
+/// # Examples
+/// ```
+/// use advent_of_code_2022_10::render;
+/// use std::fs;
+/// use std::env;
+///
+/// let contents = fs::read_to_string("example_input.txt").unwrap();
+/// assert_eq!(render(&contents),
+///     concat!(
+///         "##..##..##..##..##..##..##..##..##..##..\n",
+///         "###...###...###...###...###...###...###.\n",
+///         "####....####....####....####....####....\n",
+///         "#####.....#####.....#####.....#####.....\n",
+///         "######......######......######......####\n",
+///         "#######.......#######.......#######....."
+///     )
+/// );
+///
+/// ```
+pub fn render(input_commands: &str) -> String{
+    let device = execute_commands(input_commands);
+
+    let mut screen = String::new();
+
+    for (i, val) in device.register_history.iter().enumerate(){
+        let col: i32 = i as i32 % 40;
+        if (val - col).abs() <= 1{
+            screen.push('#');
+        }else{
+            screen.push('.');
+        }
+
+        if col == 39{
+            screen.push('\n');
+        }
+    }
+
+    // Remove trailing newline and pixel
+    screen.pop();
+    screen.pop();
+    
+    return screen;
+}
+
 /// Sums the signal strength at 20 and every 40 cycles after
 /// # Examples
 /// ```
@@ -51,14 +110,7 @@ impl Device{
 /// assert_eq!(sum_strength(&contents), 13140);
 /// ```
 pub fn sum_strength(input_commands: &str) -> i32{
-    let mut device = Device::new();
-
-    for command in input_commands.lines(){
-        match sscanf!(command, "addx {i32}") {
-            Ok(V) => device.execute(Command::addx(V)),
-            Error => device.execute(Command::noop)
-        }
-    }
+    let device = execute_commands(input_commands);
 
     [20,60,100,140,180,220].iter().map(|n| (*n as i32) * device.register_history[n-1]).sum()
 }
